@@ -54,16 +54,16 @@ const CLASSES = {
 
 /* ---------- 敌人 ---------- */
 const ENEMIES = {
-  slime:   { name: '史莱姆', icon: '🟢', hp: 20, atk: 5,  def: 1, xp: 8,  gold: randInt(2, 5),  speed: .8,  color: '#6fd08c', aggro: 2.4 },
-  bat:     { name: '暗影蝙蝠', icon: '🦇', hp: 14, atk: 6,  def: 0, xp: 10, gold: randInt(3, 6),  speed: 1.4, color: '#8a6ae0', aggro: 3.2 },
-  goblin:  { name: '哥布林', icon: '👺', hp: 30, atk: 8,  def: 2, xp: 16, gold: randInt(5, 10), speed: 1.0, color: '#d08a4e', aggro: 3.0 },
-  skeleton:{ name: '骷髅兵', icon: '💀', hp: 38, atk: 11, def: 3, xp: 22, gold: randInt(8, 14), speed: .9,  color: '#e8e8f0', aggro: 3.0 },
-  ghost:   { name: '幽灵', icon: '👻', hp: 26, atk: 12, def: 1, xp: 26, gold: randInt(10, 16), speed: 1.1, color: '#b0d4f0', aggro: 3.6 },
-  orc:     { name: '兽人战士', icon: '👹', hp: 55, atk: 15, def: 4, xp: 34, gold: randInt(12, 20), speed: .9, color: '#7a9a4e', aggro: 3.0 },
-  golem:   { name: '岩石傀儡', icon: '🗿', hp: 80, atk: 18, def: 8, xp: 50, gold: randInt(18, 30), speed: .6, color: '#a08a70', aggro: 2.6 },
-  wraith:  { name: '暗影魔', icon: '🌑', hp: 65, atk: 20, def: 4, xp: 60, gold: randInt(20, 34), speed: 1.2, color: '#5a4a8a', aggro: 3.6 },
-  dragon:  { name: '幼龙', icon: '🐉', hp: 120, atk: 25, def: 6, xp: 90, gold: randInt(30, 50), speed: 1.0, color: '#e05252', aggro: 3.4 },
-  boss:    { name: '暗影之王', icon: '👑', hp: 400, atk: 32, def: 10, xp: 500, gold: 500, speed: .8, color: '#c8102e', aggro: 5.0 },
+  slime:   { name: '史莱姆', icon: '🟢', spriteIdx: 103, hp: 20, atk: 5,  def: 1, xp: 8,  gold: randInt(2, 5),  speed: .8,  color: '#6fd08c', aggro: 2.4 },
+  bat:     { name: '暗影蝙蝠', icon: '🦇', spriteIdx: 104, hp: 14, atk: 6,  def: 0, xp: 10, gold: randInt(3, 6),  speed: 1.4, color: '#8a6ae0', aggro: 3.2 },
+  goblin:  { name: '哥布林', icon: '👺', spriteIdx: 106, hp: 30, atk: 8,  def: 2, xp: 16, gold: randInt(5, 10), speed: 1.0, color: '#d08a4e', aggro: 3.0 },
+  skeleton:{ name: '骷髅兵', icon: '💀', spriteIdx: 84, hp: 38, atk: 11, def: 3, xp: 22, gold: randInt(8, 14), speed: .9,  color: '#e8e8f0', aggro: 3.0 },
+  ghost:   { name: '幽灵', icon: '👻', spriteIdx: 96, hp: 26, atk: 12, def: 1, xp: 26, gold: randInt(10, 16), speed: 1.1, color: '#b0d4f0', aggro: 3.6 },
+  orc:     { name: '兽人战士', icon: '👹', spriteIdx: 100, hp: 55, atk: 15, def: 4, xp: 34, gold: randInt(12, 20), speed: .9, color: '#7a9a4e', aggro: 3.0 },
+  golem:   { name: '岩石傀儡', icon: '🗿', spriteIdx: 97, hp: 80, atk: 18, def: 8, xp: 50, gold: randInt(18, 30), speed: .6, color: '#a08a70', aggro: 2.6 },
+  wraith:  { name: '暗影魔', icon: '🌑', spriteIdx: 113, hp: 65, atk: 20, def: 4, xp: 60, gold: randInt(20, 34), speed: 1.2, color: '#5a4a8a', aggro: 3.6 },
+  dragon:  { name: '幼龙', icon: '🐉', spriteIdx: 120, hp: 120, atk: 25, def: 6, xp: 90, gold: randInt(30, 50), speed: 1.0, color: '#e05252', aggro: 3.4 },
+  boss:    { name: '暗影之王', icon: '👑', spriteIdx: 122, hp: 400, atk: 32, def: 10, xp: 500, gold: 500, speed: .8, color: '#c8102e', aggro: 5.0 },
 };
 
 /* ---------- 物品 ---------- */
@@ -223,7 +223,7 @@ function spawnEnemies() {
     const type = A.enemies[randInt(0, A.enemies.length - 1)];
     const t = ENEMIES[type];
     enemies.push({
-      type, name: t.name, icon: t.icon, x, y,
+      type, name: t.name, icon: t.icon, x, y, spriteIdx: t.spriteIdx,
       hp: t.hp, maxHp: t.hp, atk: t.atk, def: t.def,
       xp: t.xp, gold: randInt(t.gold[0], t.gold[1]),
       speed: t.speed, color: t.color, aggro: t.aggro,
@@ -243,7 +243,7 @@ function spawnEnemies() {
         const type = A.enemies[randInt(0, A.enemies.length - 1)];
         const t = ENEMIES[type];
         enemies.push({
-          type, name: t.name, icon: t.icon, x: ex, y: ey,
+          type, name: t.name, icon: t.icon, x: ex, y: ey, spriteIdx: t.spriteIdx,
           hp: t.hp, maxHp: t.hp, atk: t.atk, def: t.def,
           xp: t.xp, gold: randInt(t.gold[0], t.gold[1]),
           speed: t.speed, color: t.color, aggro: t.aggro,
@@ -256,7 +256,7 @@ function spawnEnemies() {
   // 区域boss（如果有）
   if (G.area === 4 && !G.bossDefeated) {
     enemies.push({
-      type: 'boss', name: ENEMIES.boss.name, icon: ENEMIES.boss.icon,
+      type: 'boss', name: ENEMIES.boss.name, icon: ENEMIES.boss.icon, spriteIdx: ENEMIES.boss.spriteIdx,
       x: 30, y: 14, hp: ENEMIES.boss.hp, maxHp: ENEMIES.boss.hp,
       atk: ENEMIES.boss.atk, def: ENEMIES.boss.def, xp: ENEMIES.boss.xp,
       gold: ENEMIES.boss.gold, speed: ENEMIES.boss.speed, color: ENEMIES.boss.color,
