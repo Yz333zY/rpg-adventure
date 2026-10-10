@@ -7,6 +7,11 @@ const ASSETS = [
   './game_part2.js',
   './manifest.webmanifest',
   './icon.png',
+  './tiles_grass.png',
+  './tiles_forest.png',
+  './tiles_graveyard.png',
+  './tiles_lava.png',
+  './tiles_dragon.png',
 ];
 
 self.addEventListener('install', e => {
