@@ -7,76 +7,128 @@ const PX = 32; // 每格渲染像素（16逻辑像素 x2 缩放）
 canvas.width = VIEW.w * PX;
 canvas.height = VIEW.h * PX;
 
-function drawPixelTile(gx, gy, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(gx * PX, gy * PX, PX, PX);
+/* ---------- 精灵图集系统（Kenney Tiny Dungeon CC0） ---------- */
+const ATLAS = {
+  0: 'tiles_grass.png',      // 宁静草原
+  1: 'tiles_forest.png',     // 幽暗森林
+  2: 'tiles_graveyard.png',  // 荒芜墓地
+  3: 'tiles_lava.png',       // 熔岩洞穴
+  4: 'tiles_dragon.png',     // 龙之谷
+};
+const atlasImgs = {};   // area -> HTMLImageElement
+const ATLAS_COLS = 12, ATLAS_ROW = 16; // 每行12格, 每格16px
+let atlasReady = 0;
+function loadAtlases(cb) {
+  let total = 0;
+  for (const k in ATLAS) total++;
+  for (const k in ATLAS) {
+    const img = new Image();
+    img.onload = () => { atlasReady++; if (atlasReady >= total && cb) cb(); };
+    img.onerror = () => { atlasReady++; };
+    img.src = ATLAS[k];
+    atlasImgs[k] = img;
+  }
+}
+function getAtlas() { return atlasImgs[G.area] || atlasImgs[0]; }
+function atlasLoaded() { const a = getAtlas(); return a && a.complete && a.naturalWidth > 0; }
+
+/* 从图集绘制瓦片: idx=图集编号, gx/gy=地图格, flipX=水平翻转 */
+function drawTile(idx, gx, gy, flipX, scale) {
+  const atlas = getAtlas();
+  const sx = (idx % ATLAS_COLS) * ATLAS_ROW;
+  const sy = Math.floor(idx / ATLAS_COLS) * ATLAS_ROW;
+  const s = scale || 1;
+  const dw = PX * s, dh = PX * s;
+  const dx = gx * PX + (PX - dw) / 2;
+  const dy = gy * PX + (PX - dh) / 2;
+  if (flipX) {
+    ctx.save();
+    ctx.translate(dx + dw / 2, dy + dh / 2);
+    ctx.scale(-1, 1);
+    ctx.drawImage(atlas, sx, sy, 16, 16, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  } else {
+    ctx.drawImage(atlas, sx, sy, 16, 16, dx, dy, dw, dh);
+  }
 }
 
-/* 简单像素画：玩家（16x16逻辑，按格画） */
+/* ---------- 玩家（使用真精灵：64骑士/65法师/120游侠） ---------- */
+const PLAYER_SPRITE = { warrior: 64, mage: 65, rogue: 120 };
 function drawPlayer(gx, gy, facing) {
   const x = gx * PX, y = gy * PX;
   // 影子
   ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.beginPath(); ctx.ellipse(x + PX / 2, y + PX - 3, 9, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-  // 身体（根据职业上色）
-  const clsColor = G.cls === 'warrior' ? '#c95b4e' : G.cls === 'mage' ? '#4e6fe0' : '#5b8f4e';
-  ctx.fillStyle = clsColor;
-  ctx.fillRect(x + 5, y + 6, 6, 8);
-  // 头
-  ctx.fillStyle = '#e8c39a';
-  ctx.fillRect(x + 4, y + 1, 8, 6);
-  // 头发
-  ctx.fillStyle = '#3a2a1a';
-  ctx.fillRect(x + 4, y + 1, 8, 2);
-  // 眼睛（方向）
-  ctx.fillStyle = '#1a1a22';
-  const ex = facing === 1 ? x + 10 : x + 5;
-  ctx.fillRect(ex, y + 4, 2, 2);
-  // 武器
-  ctx.fillStyle = '#d4d4e0';
-  if (facing === 1) ctx.fillRect(x + 11, y + 7, 2, 7);
-  else ctx.fillRect(x + 3, y + 7, 2, 7);
-  // 斗篷
-  ctx.fillStyle = G.cls === 'warrior' ? '#7a2a22' : G.cls === 'mage' ? '#2a3a7a' : '#2a5a3a';
-  ctx.fillRect(x + 5, y + 13, 6, 2);
+  ctx.beginPath(); ctx.ellipse(x + PX / 2, y + PX - 4, 10, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  // 精灵本体（轻微浮动动画）
+  const bob = Math.sin(walkAnim * 8) * 2 * (isMoving() ? 1 : 0);
+  const sIdx = PLAYER_SPRITE[G.cls] || 64;
+  const scale = 1.05;
+  const dw = PX * scale, dh = PX * scale;
+  const dx = x + (PX - dw) / 2;
+  const dy = y + (PX - dh) / 2 + bob;
+  const sx = (sIdx % ATLAS_COLS) * ATLAS_ROW;
+  const sy = Math.floor(sIdx / ATLAS_COLS) * ATLAS_ROW;
+  const atlas = getAtlas();
+  if (atlasLoaded()) {
+    if (facing < 0) {
+      ctx.save();
+      ctx.translate(dx + dw / 2, dy + dh / 2);
+      ctx.scale(-1, 1);
+      ctx.drawImage(atlas, sx, sy, 16, 16, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.drawImage(atlas, sx, sy, 16, 16, dx, dy, dw, dh);
+    }
+  }
+  // 职业名标记
+  ctx.font = 'bold 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,.65)';
+  ctx.strokeStyle = 'rgba(0,0,0,.6)';
+  ctx.lineWidth = 2;
+  const clsName = G.className;
+  ctx.strokeText(clsName, x + PX / 2, y + 2);
+  ctx.fillText(clsName, x + PX / 2, y + 2);
+}
+function isMoving() {
+  return moveDir.up || moveDir.down || moveDir.left || moveDir.right;
 }
 
 function drawEnemy(e) {
   const x = e.x * PX, y = e.y * PX;
   // 影子
   ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.beginPath(); ctx.ellipse(x + PX / 2, y + PX - 3, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + PX / 2, y + PX - 4, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
   // 受击闪烁
-  if (e.hurtT > 0) { ctx.globalAlpha = .5; }
-  // 身体
-  const s = e.isBoss ? 1.6 : 1;
-  ctx.fillStyle = e.color;
-  if (e.type === 'slime') {
-    ctx.beginPath(); ctx.ellipse(x + PX / 2, y + PX - 4, 8 * s, 5 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#1a2a1f'; ctx.fillRect(x + PX / 2 - 3, y + PX / 2 - 2, 2, 2); ctx.fillRect(x + PX / 2 + 3, y + PX / 2 - 2, 2, 2);
-  } else if (e.type === 'ghost') {
-    ctx.globalAlpha = .65;
-    ctx.beginPath(); ctx.arc(x + PX / 2, y + PX / 2 - 2, 7 * s, Math.PI, 0); ctx.lineTo(x + PX - 2, y + PX - 4); ctx.lineTo(x + 2, y + PX - 4); ctx.fill();
-  } else if (e.type === 'bat') {
-    ctx.fillStyle = '#3a2a5a';
-    ctx.beginPath(); ctx.moveTo(x + PX / 2, y + PX / 2 - 2);
-    ctx.lineTo(x + 1, y + 4); ctx.lineTo(x + 6, y + 9); ctx.lineTo(x + PX / 2, y + 6);
-    ctx.lineTo(x + PX - 6, y + 9); ctx.lineTo(x + PX - 1, y + 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ff4444'; ctx.fillRect(x + PX / 2 - 2, y + 2, 4, 2);
-  } else if (e.isBoss) {
-    ctx.fillStyle = '#2a1a1a';
-    ctx.beginPath(); ctx.arc(x + PX / 2, y + PX / 2 - 3, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = e.color;
-    ctx.beginPath(); ctx.arc(x + PX / 2, y + PX / 2 - 4, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffdd00'; ctx.fillRect(x + PX / 2 - 4, y + 2, 2, 3); ctx.fillRect(x + PX / 2 + 3, y + 2, 2, 3);
-    ctx.fillStyle = '#ff2222'; ctx.fillRect(x + PX / 2 - 2, y + PX / 2 + 2, 2, 2); ctx.fillRect(x + PX / 2 + 2, y + PX / 2 + 2, 2, 2);
-  } else {
-    // 通用人形
-    ctx.fillStyle = e.color;
-    ctx.fillRect(x + 5, y + 6, 6, 8);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(x + 4, y + 1, 8, 5);
-    ctx.fillStyle = '#ff2222'; ctx.fillRect(x + PX / 2 - 2, y + 4, 2, 2); ctx.fillRect(x + PX / 2 + 2, y + 4, 2, 2);
+  if (e.hurtT > 0) ctx.globalAlpha = .5;
+  // 真精灵图（带轻微浮动动画）
+  const bob = Math.sin((walkAnim * 4 + e.x * 0.7) * Math.PI) * 2;
+  const sIdx = e.spriteIdx;
+  const s = e.isBoss ? 1.7 : 1.1;
+  const dw = PX * s, dh = PX * s;
+  const dx = x + (PX - dw) / 2;
+  const dy = y + (PX - dh) / 2 + bob;
+  const sx = (sIdx % ATLAS_COLS) * ATLAS_ROW;
+  const sy = Math.floor(sIdx / ATLAS_COLS) * ATLAS_ROW;
+  const atlas = getAtlas();
+  if (atlasLoaded()) {
+    // 敌人方向朝向玩家
+    const flip = (G.x < e.x) ? 1 : -1;
+    if (flip < 0) {
+      ctx.save();
+      ctx.translate(dx + dw / 2, dy + dh / 2);
+      ctx.scale(-1, 1);
+      ctx.drawImage(atlas, sx, sy, 16, 16, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.drawImage(atlas, sx, sy, 16, 16, dx, dy, dw, dh);
+    }
+    // Boss 红色边框强调
+    if (e.isBoss) {
+      ctx.strokeStyle = '#c8102e';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(dx - 2, dy - 2, dw + 4, dh + 4);
+    }
   }
   ctx.globalAlpha = 1;
   // 血条
@@ -121,7 +173,7 @@ function render(dt) {
   ctx.save();
   ctx.translate(-cam.x, -cam.y);
 
-  // 地面（只画视野内）
+  // 地面（只画视野内，用真瓦片：0地砖 / 5/6碎石变体）
   const sx = Math.floor(cam.x / PX), sy = Math.floor(cam.y / PX);
   const ex = sx + VIEW.w + 1, ey = sy + VIEW.h + 1;
   for (let y = sy; y <= ey; y++) {
@@ -129,15 +181,21 @@ function render(dt) {
       if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) continue;
       const isWall = world[G.area][y][x] === 1;
       if (isWall) {
-        ctx.fillStyle = A.wall;
-        ctx.fillRect(x * PX, y * PX, PX, PX);
-        ctx.fillStyle = 'rgba(0,0,0,.2)';
+        // 墙壁真瓦片：根据邻居决定（1=实心墙）
+        drawTile(1, x, y);
+        // 墙顶高光
+        ctx.fillStyle = 'rgba(255,255,255,.08)';
         ctx.fillRect(x * PX, y * PX, PX, 3);
       } else {
-        ctx.fillStyle = ((x + y) % 2 === 0) ? A.ground : A.ground2;
-        ctx.fillRect(x * PX, y * PX, PX, PX);
-        // 装饰草/石
-        if (((x * 7 + y * 13) % 23) === 0) {
+        // 地面：0号地砖 + 少量碎石变体（5/6/7）
+        const rnd = (x * 31 + y * 17) % 23;
+        let tile = 0;
+        if (rnd === 0) tile = 5;
+        else if (rnd === 1) tile = 6;
+        else if (rnd === 2) tile = 7;
+        drawTile(tile, x, y);
+        // 装饰草/石粒
+        if (rnd === 3) {
           ctx.fillStyle = 'rgba(255,255,255,.06)';
           ctx.fillRect(x * PX + 6, y * PX + 10, 3, 3);
         }
@@ -145,31 +203,53 @@ function render(dt) {
     }
   }
 
-  // 出口标记
-  ctx.fillStyle = 'rgba(212,162,78,.5)';
-  ctx.fillRect(A.exit.x * PX, A.exit.y * PX, PX, PX);
-  ctx.fillStyle = '#d4a24e';
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('➜', A.exit.x * PX + PX / 2, A.exit.y * PX + 14);
-
-  // NPC
-  const npc = A.npc;
-  if (npc) {
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(npc.icon, npc.x * PX + PX / 2, npc.y * PX + 22);
-    // 头顶名字
-    ctx.font = '9px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,.7)';
-    ctx.fillText(npc.name, npc.x * PX + PX / 2, npc.y * PX + 2);
-  }
-
-  // 掉落物
-  for (const l of loots) {
+  // 出口传送门（58号地砖上放传送门特效 + 59发光地砖）
+  const ex2 = A.exit;
+  if (world[G.area][ex2.y][ex2.x] === 0) {
+    // 传送门光柱动画
+    const pulse = 0.5 + 0.5 * Math.sin(walkAnim * 3);
+    ctx.fillStyle = 'rgba(212,162,78,' + (0.15 + pulse * 0.25) + ')';
+    ctx.fillRect(ex2.x * PX + 4, ex2.y * PX + 4, PX - 8, PX - 8);
+    ctx.fillStyle = '#d4a24e';
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(l.icon, l.x * PX + PX / 2, l.y * PX + PX - 2);
+    ctx.fillText('➜', ex2.x * PX + PX / 2, ex2.y * PX + PX - 2);
+    // 传送门边框
+    ctx.strokeStyle = 'rgba(212,162,78,' + (0.4 + pulse * 0.4) + ')';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(ex2.x * PX + 2, ex2.y * PX + 2, PX - 4, PX - 4);
+  }
+
+  // NPC（真精灵：124商人/121法师/66猎人/110守墓人/111先知）
+  const npc = A.npc;
+  if (npc) {
+    const npcSprite = { '老者阿尔文': 65, '猎人海姆': 120, '守墓人': 111, '矮人铁匠': 110, '先知': 121 }[npc.name] || 65;
+    drawTile(npcSprite, npc.x, npc.y, G.x < npc.x, 1.1);
+    // 头顶名字
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.strokeStyle = 'rgba(0,0,0,.6)';
+    ctx.lineWidth = 2;
+    ctx.strokeText(npc.name, npc.x * PX + PX / 2, npc.y * PX - 2);
+    ctx.fillText(npc.name, npc.x * PX + PX / 2, npc.y * PX - 2);
+    // 对话提示泡泡
+    const bubble = 0.5 + 0.5 * Math.sin(walkAnim * 2.5);
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + bubble * 0.4) + ')';
+    ctx.beginPath(); ctx.arc(npc.x * PX + PX / 2, npc.y * PX - 8, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(npc.x * PX + PX / 2, npc.y * PX - 8, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 掉落物（真精灵：101宝箱/102金币/73药水/60白骨）
+  for (const l of loots) {
+    if (l.type === 'gold') drawTile(30, l.x, l.y, false, 1);
+    else if (l.type === 'item') drawTile(ITEMS[l.item] && ITEMS[l.item].type === 'consumable' ? 73 : 101, l.x, l.y, false, 1);
+    else drawTile(60, l.x, l.y, false, 1);
+    // 发光提示
+    const lp = 0.5 + 0.5 * Math.sin(walkAnim * 3 + l.x);
+    ctx.fillStyle = 'rgba(212,162,78,' + (0.1 + lp * 0.15) + ')';
+    ctx.fillRect(l.x * PX + 2, l.y * PX + 2, PX - 4, PX - 4);
   }
 
   // 敌人
@@ -464,6 +544,7 @@ function startGame(cls) {
   newGame(cls);
   buildWorld();
   spawnEnemies();
+  loadAtlases(() => {});
   $('screen-title').style.display = 'none';
   $('screen-game').style.display = 'flex';
   updateUI();
@@ -481,6 +562,7 @@ function continueGame() {
   if (typeof G.px !== 'number') { G.px = G.x; G.py = G.y; }
   buildWorld();
   spawnEnemies();
+  loadAtlases(() => {});
   $('screen-title').style.display = 'none';
   $('screen-game').style.display = 'flex';
   updateUI();
@@ -512,6 +594,7 @@ function loop(t) {
   if (!running) return;
   const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
   lastT = t;
+  walkAnim += dt;
   updatePlayer(dt);
   updateEnemies(dt);
   pickupLoot();
