@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="暗影征途">
+<meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<title>暗影征途 · 像素RPG</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- 标题画面 -->
+  <div id="screen-title">
+    <div class="logo">⚔️</div>
+    <h1>暗影征途</h1>
+    <div class="sub">SHADOW QUEST · 像素RPG</div>
+    <button class="btn primary" id="btnNew">开始冒险</button>
+    <button class="btn ghost" id="btnContinue" style="display:none">继续冒险</button>
+    <div id="classSelect" style="display:none">
+      <div class="cls" data-cls="warrior"><div class="ic">🛡️</div><div class="meta"><div class="nm">战士</div><div class="ds">近战猛攻 · 血量厚</div></div><div class="st">HP 150%<br>攻击 ★★★</div></div>
+      <div class="cls" data-cls="mage"><div class="ic">🔮</div><div class="meta"><div class="nm">法师</div><div class="ds">远程法术 · 爆发高</div></div><div class="st">MP 130%<br>法强 ★★★</div></div>
+      <div class="cls" data-cls="rogue"><div class="ic">🗡️</div><div class="meta"><div class="nm">游侠</div><div class="ds">灵巧迅捷 · 闪避高</div></div><div class="st">速度 ★★★<br>暴击 ★★</div></div>
+      <button class="btn small" id="btnStartGame" style="width:100%;margin-top:6px">启程</button>
+    </div>
+    <div class="hint">支持离线游玩 · 进度自动保存<br>在 Safari 中「分享 → 添加到主屏幕」即可像 APP 一样使用</div>
+  </div>
+
+  <!-- 游戏主界面 -->
+  <div id="screen-game">
+    <div id="topbar">
+      <div class="bar-row"><span class="bar-label">HP</span><div class="bar hp"><i id="hpBar"></i></div><span class="bar-val" id="hpVal"></span></div>
+      <div class="bar-row"><span class="bar-label">MP</span><div class="bar mp"><i id="mpBar"></i></div><span class="bar-val" id="mpVal"></span></div>
+      <div class="bar-row"><span class="bar-label">XP</span><div class="bar xp"><i id="xpBar"></i></div><span class="bar-val" id="xpVal"></span></div>
+      <div class="info-row">
+        <span>Lv <b id="lvVal">1</b></span><span id="locVal">起始之地</span>
+        <span>💰 <b id="goldVal">0</b></span><span id="dmgVal">攻 <b id="atkVal">10</b></span>
+        <button class="btn small" id="btnMenu" style="margin-left:auto">菜单</button>
+      </div>
+    </div>
+    <div id="canvasWrap">
+      <canvas id="game"></canvas>
+      <div id="floatHint"></div>
+    </div>
+    <div id="dock">
+      <div id="dpad">
+        <div class="empty"></div><button class="up" data-d="up">▲</button><div class="empty"></div>
+        <button class="left" data-d="left">◀</button><div class="empty" id="dpadCenter"></div><button class="right" data-d="right">▶</button>
+        <div class="empty"></div><button class="down" data-d="down">▼</button><div class="empty"></div>
+      </div>
+      <div id="actions">
+        <button id="btnAttack">⚔ 攻击<span class="t">靠近敌人</span></button>
+        <button id="btnSkill">✨ 技能<span class="t" id="skillName">烈焰斩</span></button>
+        <button id="btnInteract">💬 对话<span class="t">与NPC交谈</span></button>
+        <button id="btnBag">🎒 背包<span class="t">道具与装备</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 弹窗 -->
+  <div class="modal" id="modalDialog"><div class="card"><h3 id="dlgTitle"></h3><p id="dlgText"></p><div id="dlgBtns"></div></div></div>
+  <div class="modal" id="modalBag"><div class="card"><h3>🎒 背包</h3><div id="bagList"></div><button class="btn small" id="bagClose" style="width:100%;margin-top:12px">关闭</button></div></div>
+  <div class="modal" id="modalMenu"><div class="card"><h3>菜单</h3>
+    <div class="row"><span class="nm">角色</span><span class="pr" id="menuInfo"></span></div>
+    <div class="row"><span class="nm">技能</span><span class="pr" id="menuSkill"></span></div>
+    <div class="row"><span class="nm">成就</span><span class="pr" id="menuKill"></span></div>
+    <div class="row"><span class="nm">音量</span><span class="pr"><button class="btn small" id="btnVol">开</button></span></div>
+    <button class="btn small" id="btnSave" style="width:100%;margin-top:12px">💾 保存进度</button>
+    <button class="btn small" id="btnReset" style="width:100%;margin-top:6px">🗑 重新开始</button>
+    <button class="btn small" id="menuClose" style="width:100%;margin-top:6px">关闭</button>
+  </div></div>
+
+</div>
+<script src="game_part1.js"></script>
+<script src="game_part2.js"></script>
+</body>
+</html>
